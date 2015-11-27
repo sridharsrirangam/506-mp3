@@ -11,7 +11,7 @@
 #include <stdio.h>
 using namespace std;
 
-void Cache::Cache_c(int s,int a,int b )
+void Cache::Cache_c(int s,int a,int b, int l, Cache* nextLevel )
 {
    ulong i, j;
    reads = readMisses = writes = 0; 
@@ -22,7 +22,8 @@ void Cache::Cache_c(int s,int a,int b )
    memtrnsfr=0;
    flush =0;
    somemore=0;
-
+  
+   level      = l;
    size       = (ulong)(s);
    lineSize   = (ulong)(b);
    assoc      = (ulong)(a);   
@@ -30,7 +31,8 @@ void Cache::Cache_c(int s,int a,int b )
    numLines   = (ulong)(s/b);
    log2Sets   = (ulong)(log2(sets));   
    log2Blk    = (ulong)(log2(b));   
- 
+  
+   next_level = nextLevel;
    printf("calling cache contructor \n");
   // printf("assoc: %lu",assoc);
   // printf("  size: %lu",size);
@@ -80,13 +82,21 @@ int Cache::Access(ulong addr,uchar op)
 		else  readMisses++;
  
     //the below function is commented as L1 is WTNA. This has to be explitcly called for L1 reads and all L2
-   		if(op == 'r') 
-      { 
-
-	      cacheLine *newline = fillLine(addr);
-        newline = newline;
+   		if(level == 1) 
+      {
+        if(op == 'r')
+        {
+	        cacheLine *newline = fillLine(addr);
+          newline = newline;
        // newline->setFlags(DIRTY); newline->setStates(MODIFIED_ST);
-      }    
+         }
+      }
+      else if(level == 2)
+      {
+        cacheLine *newline = fillLine(addr);
+          if(op == 'w') { newline->setFlags(DIRTY); }
+      }
+
 	  //  line_up=newline;	
 	}
 	else
@@ -167,6 +177,16 @@ cacheLine * Cache::getLRU(ulong addr)
 	 if(cache[i][j].getSeq() <= min) { victim = j; min = cache[i][j].getSeq();}
    } 
    assert(victim != assoc);
+
+   ulong tag = cache[i][victim].getTag();
+   ulong addr2L1 = calcAddr4Tag(tag);
+  // cout<<hex<<addr2L1<<endl;
+   if(next_level != NULL)
+   {
+    cacheLine *L1_inv = next_level->findLine(addr2L1);
+    if(L1_inv != NULL)  L1_inv->setFlags(INVALID);
+   // cout<<"test"<<endl;
+   }
    
    return &(cache[i][victim]);
 }

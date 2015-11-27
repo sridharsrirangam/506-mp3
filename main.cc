@@ -65,20 +65,20 @@ int main(int argc, char *argv[])
 	//*********************************************//
         //*****create an array of caches here**********//
 	//*********************************************//	
-    //1 caches
+    //L1 caches
     Cache *L1;
     L1 = new Cache[4];
     cout<<"pre seg fault"<<endl;
     for(int i=0;i<4;i++)
     {
-      L1[i].Cache_c(L1_cache_size, L1_cache_assoc,blk_size);
+      L1[i].Cache_c(L1_cache_size, L1_cache_assoc,blk_size, 1, NULL);
     }
     cout<<"post  fault"<<endl;
     Cache *multi;
     multi= new Cache[4];
     for(int i=0;i<4;i++)
     {
-        multi[i].Cache_c(L2_cache_size,L2_cache_assoc,blk_size);
+        multi[i].Cache_c(L2_cache_size,L2_cache_assoc,blk_size, 2, &L1[i]);
     }
      cout<<"post L2  fault"<<endl;
 	//CPU_cache multi_cache(cache_size,cache_assoc,blk_size,cpu_no);
@@ -119,11 +119,11 @@ int main(int argc, char *argv[])
   int L1_hit = L1[cpu_no].Access(addr,op);
 
 
-    if(L1_hit == 0)
+    if((L1_hit == 0)||(op == 'w'))
     {
 
       int c = 0;
-      int s_e=0;
+      int s_e = 0;
       cacheLine *line = multi[cpu_id].findLine(addr);
       if(line != NULL)
       {
@@ -211,9 +211,6 @@ int main(int argc, char *argv[])
     {
         printf("============ Simulation results ( L1 Cache %d) ============ \n",i);
         L1[i].printStats();	
-    }
-    for(int i=0;i<4;i++)
-    {
         printf("============ Simulation results ( L2 Cache %d) ============ \n",i);
         multi[i].printStats();	
     }

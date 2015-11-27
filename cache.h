@@ -63,7 +63,7 @@ class Cache
 protected:
    ulong size, lineSize, assoc, sets, log2Sets, log2Blk, tagMask, numLines;
    ulong reads,readMisses,writes,writeMisses,writeBacks;
-
+   int level;
    //******///
    //add coherence counters here///
    //******///
@@ -83,9 +83,10 @@ public:
     ulong flush;
     ulong somemore;
 
+    Cache* next_level;
     Cache(){};
    
-    void  Cache_c(int,int,int);
+    void  Cache_c(int,int,int,int, Cache* );
  //   ~Cache() { delete cache;}
    
    cacheLine *findLineToReplace(ulong addr);
