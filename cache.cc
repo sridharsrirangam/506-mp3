@@ -22,7 +22,9 @@ void Cache::Cache_c(int s,int a,int b, int l, Cache* nextLevel )
    memtrnsfr=0;
    flush =0;
    somemore=0;
-  
+   back_invalidations = 0;
+   tag_L1 = 0; 
+
    level      = l;
    size       = (ulong)(s);
    lineSize   = (ulong)(b);
@@ -33,7 +35,8 @@ void Cache::Cache_c(int s,int a,int b, int l, Cache* nextLevel )
    log2Blk    = (ulong)(log2(b));   
   
    next_level = nextLevel;
-   printf("calling cache contructor \n");
+   cout<<"cache contructor pointer "<<next_level<<endl;
+  //printf("calling cache contructor \n");
   // printf("assoc: %lu",assoc);
   // printf("  size: %lu",size);
   // printf("  blocksize  %lu",lineSize); 
@@ -105,9 +108,9 @@ int Cache::Access(ulong addr,uchar op)
 		updateLRU(line);
         if(line->getFlags() == DIRTY)
         {
-            hit=1;
+            hit=1; 
         }
-        else if(line->getFlags() == EXCLUSIVE)
+        else if((line->getFlags() == EXCLUSIVE))
         {
             hit = 1;
         }
@@ -127,6 +130,7 @@ int Cache::Access(ulong addr,uchar op)
     //else return line;
    // return line;
     }
+    //if((op == 'w') && (level == 1)) hit = 0;
     return hit;
 
 
@@ -178,14 +182,23 @@ cacheLine * Cache::getLRU(ulong addr)
    } 
    assert(victim != assoc);
 
-   ulong tag = cache[i][victim].getTag();
-   ulong addr2L1 = calcAddr4Tag(tag);
-  // cout<<hex<<addr2L1<<endl;
-   if(next_level != NULL)
+   if((level == 2)&& (next_level != NULL))
    {
-    cacheLine *L1_inv = next_level->findLine(addr2L1);
-    if(L1_inv != NULL)  L1_inv->setFlags(INVALID);
-   // cout<<"test"<<endl;
+     ulong tag_L = cache[i][victim].getTag();
+     cout<<" L2 tag " <<tag_L<<endl;
+     ulong addr2L1 = calcAddr4Tag(tag_L);
+     addr2L1 = addr2L1;
+     //cout<<hex<<addr2L1<<endl;
+    // cout<<"pointer "<<next_level<< "level "<<level<<endl;
+     cacheLine *L1_inv = next_level->findLine(addr2L1);
+    // L1_inv = L1_inv;
+      if(L1_inv != NULL)  
+       {
+         cout<<" L1 tag "<<L1_inv->getTag()<<endl;
+         L1_inv->setFlags(INVALID);
+         next_level->incr_back_invalidations();
+       }
+    // cout<<"test"<<endl;
    }
    
    return &(cache[i][victim]);
@@ -207,6 +220,15 @@ cacheLine *Cache::fillLine(ulong addr)
   
    cacheLine *victim = findLineToReplace(addr);
    assert(victim != 0);
+ //  ulong tag_v = victim->getTag();
+ //  ulong addr2L1 = calcAddr4Tag(tag_v);
+ //  cout<<hex<<addr2L1<<endl;
+ //  if(next_level != NULL)
+ //  {
+ //   cacheLine *L1_inv = next_level->findLine(addr2L1);
+ //   if(L1_inv != NULL)  L1_inv->setFlags(INVALID);
+ //   next_level->incr_back_invalidations();
+ //  }
    if((victim->getFlags() == DIRTY)||(victim->getFlags() == Sm)) writeBack(addr);
     	
    tag = calcTag(addr);   
@@ -234,6 +256,7 @@ void Cache::printStats()
     printf("10. number of invalidations: %d \n",invalidates);
     printf("11. number of flushes: %lu \n",flush);
     printf("12. number of BusRdX: %d \n",BusRdX);
+    printf("13. number of back invalidations: %lu \n",back_invalidations);
 }
 
 
@@ -252,6 +275,14 @@ void Cache::BusRdx_MESI( ulong addr, uchar op)
           line->invalidate();
           invalidates++;
          }
+       ulong addr2L1 = calcAddr4Tag(line->getTag());
+       cacheLine *L1_inv = next_level->findLine(addr2L1);
+       if(L1_inv != NULL)
+       {
+         L1_inv->setFlags(INVALID);
+
+       }
+      next_level->incr_back_invalidations();
     }
 }
 
@@ -297,6 +328,14 @@ void Cache::BusUpgr_MESI (ulong addr, uchar op)
             line->invalidate();
             invalidates++;
         }
+       ulong addr2L1 = calcAddr4Tag(line->getTag());
+       cacheLine *L1_inv = next_level->findLine(addr2L1);
+       if(L1_inv != NULL)
+       {
+         L1_inv->setFlags(INVALID);
+
+       }
+         next_level->incr_back_invalidations();
     }
 }
 /*

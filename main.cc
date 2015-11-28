@@ -68,19 +68,17 @@ int main(int argc, char *argv[])
     //L1 caches
     Cache *L1;
     L1 = new Cache[4];
-    cout<<"pre seg fault"<<endl;
     for(int i=0;i<4;i++)
     {
       L1[i].Cache_c(L1_cache_size, L1_cache_assoc,blk_size, 1, NULL);
+      cout<<" Cache "<<i<<" pointer "<<&L1[i]<<endl;
     }
-    cout<<"post  fault"<<endl;
     Cache *multi;
     multi= new Cache[4];
     for(int i=0;i<4;i++)
     {
         multi[i].Cache_c(L2_cache_size,L2_cache_assoc,blk_size, 2, &L1[i]);
     }
-     cout<<"post L2  fault"<<endl;
 	//CPU_cache multi_cache(cache_size,cache_assoc,blk_size,cpu_no);
     //std:: vector<Cache> multi(num_processors,Cache(cache_size,cache_assoc,blk_size));
 
@@ -115,11 +113,34 @@ int main(int argc, char *argv[])
   // printf("cpu number %d \n ",cpu_id); 
  // int hit = multi[cpu_id].Access(addr,op);
    // printf("called pr read for processpr %d \n",cpu_id);
-      
-  int L1_hit = L1[cpu_no].Access(addr,op);
+    
 
+    cacheLine *L1_ptr = L1[cpu_no].findLine(addr);
+    int L1_hit_d = L1[cpu_no].Access(addr,op);
+    L1_hit_d = L1_hit_d;
+    if((L1_ptr != NULL )&&( op == 'w'))
+    {
+      cacheLine *line = multi[cpu_no].findLine(addr);
+      if(line != NULL)
+      {
+         if(line->getFlags() == VALID)
+        {
+           for( int i=0;i<4;i++)
+           {
+             if(i != cpu_id)
+              {
+                  multi[i].BusUpgr_MESI(addr, op);
+              }
+           }
+           line->setFlags(DIRTY);
 
-    if((L1_hit == 0)||(op == 'w'))
+        }
+       }
+       int L2_hit =  multi[cpu_id].Access(addr,op);
+       L2_hit = L2_hit;
+      }
+
+    if(L1_ptr == NULL)
     {
 
       int c = 0;

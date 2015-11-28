@@ -62,7 +62,6 @@ class Cache
 {
 protected:
    ulong size, lineSize, assoc, sets, log2Sets, log2Blk, tagMask, numLines;
-   ulong reads,readMisses,writes,writeMisses,writeBacks;
    int level;
    //******///
    //add coherence counters here///
@@ -74,6 +73,7 @@ protected:
    ulong calcAddr4Tag(ulong tag)   { return (tag << (log2Blk));}
    
 public:
+    ulong reads,readMisses,writes,writeMisses,writeBacks;
     ulong currentCycle;  
     unsigned int BusRdX;
     unsigned int invalidates; 
@@ -82,7 +82,8 @@ public:
     ulong memtrnsfr;
     ulong flush;
     ulong somemore;
-
+    ulong back_invalidations;
+    ulong tag_L1;
     Cache* next_level;
     Cache(){};
    
@@ -102,7 +103,7 @@ public:
    int Access(ulong,uchar);
    void printStats();
    void updateLRU(cacheLine *);
-
+   void incr_back_invalidations(){  back_invalidations++;}
    //functions for MSI
    void BusRdX_MSI(ulong addr,uchar op);
    void BusRd_MSI(ulong addr,uchar op);
