@@ -38,7 +38,7 @@ void Cache::Cache_c(int s,int a,int b, int l, Cache* nextLevel )
    log2Blk    = (ulong)(log2(b));   
   
    next_level = nextLevel;
-   cout<<"cache contructor pointer "<<next_level<<endl;
+   //cout<<"cache contructor pointer "<<next_level<<endl;
   //printf("calling cache contructor \n");
   // printf("assoc: %lu",assoc);
   // printf("  size: %lu",size);
@@ -234,6 +234,7 @@ cacheLine *Cache::fillLine(ulong addr)
  //   if(L1_inv != NULL)  L1_inv->setFlags(INVALID);
  //   next_level->incr_back_invalidations();
  //  }
+   if(victim->getFlags() == DIRTY) writeBack(addr);
    if(victim->getFlags() != INVALID) evictions++; 	
    tag = calcTag(addr);   
    victim->setTag(tag);
@@ -253,18 +254,26 @@ void Cache::printStats()
     printf("03. number of writes: %lu \n", writes);
     printf("04. number of write misses: %lu \n",writeMisses);
     printf("05. total miss rate: %.2f %% \n",(float)100*(readMisses+writeMisses)/(reads+writes));
-    printf("06. number of writebacks: %lu \n", writeBacks);
-    printf("07. number of cache-to-cache transfers: %lu \n",cache2cache);
-    printf("08. number of memory transactions: %lu \n",readMisses+writeMisses+writeBacks-cache2cache+somemore);
-    printf("09. number of interventions: %d \n",interventions);
-    printf("10. number of invalidations: %d \n",invalidates);
-    printf("11. number of flushes: %lu \n",flush);
-    printf("12. number of BusRdX: %d \n",BusRdX);
-    printf("13. number of back invalidations: %lu \n",back_invalidations);
-    printf("14. number of Evictions: %lu \n",evictions);
-    printf("15. number of L1 cache fills: %lu \n",L1_cache_fills);
-    printf("16. number of fillLine calls: %lu \n",fillLine_calls);
+   
+    if(level == 1)
+    {
+      printf("06. number of back invalidations: %lu \n",back_invalidations);
+      printf("07. number of fills: %lu \n",L1_cache_fills);
+      printf("08. number of evictions: %lu \n",evictions);
+    }
+
+    if(level == 2)
+    {
+       printf("06. number of writebacks: %lu \n", writeBacks);
+       printf("07. number of cache-to-cache transfers: %lu \n",cache2cache);
+       printf("08. number of memory transactions: %lu \n",readMisses+writeMisses+writeBacks-cache2cache+somemore);
+       printf("09. number of interventions: %d \n",interventions);
+       printf("10. number of invalidations: %d \n",invalidates);
+       printf("11. number of flushes: %lu \n",flush);
+       printf("12. number of evictions: %lu \n",evictions);
+    }
 }
+
 
 
 void Cache::BusRdx_MESI( ulong addr, uchar op)
@@ -272,7 +281,7 @@ void Cache::BusRdx_MESI( ulong addr, uchar op)
     cacheLine *line = findLine(addr);
    if(line!=NULL)
    {
-       ulong addr2L1 = calcAddr4Tag(line->getTag());
+       //ulong addr2L1 = calcAddr4Tag(line->getTag());
        if(line->isValid())
        {
            if(line->getFlags() == DIRTY)
@@ -283,14 +292,15 @@ void Cache::BusRdx_MESI( ulong addr, uchar op)
           line->invalidate();
           invalidates++;
          }
-       cacheLine *L1_inv = next_level->findLine(addr2L1);
+       cacheLine *L1_inv = next_level->findLine(addr);//2L1);
        if(L1_inv != NULL)
        {
          //L1_inv->setFlags(INVALID);
         if(L1_inv->isValid())  L1_inv->invalidate();
+         next_level->incr_back_invalidations();
 
        }
-      next_level->incr_back_invalidations();
+     // next_level->incr_back_invalidations();
     }
 }
 
@@ -320,31 +330,26 @@ void Cache::BusRd_MESI( ulong addr, uchar op)
     }
 }
 
-
-
-
-
-    
-
 void Cache::BusUpgr_MESI (ulong addr, uchar op)
 {
     cacheLine *line = findLine(addr);
     if(line != NULL)
     {
-        ulong addr2L1 = calcAddr4Tag(line->getTag());
+       // ulong addr2L1 = calcAddr4Tag(line->getTag());
         if(line->isValid())
         {
             line->invalidate();
             invalidates++;
         }
-       cacheLine *L1_inv = next_level->findLine(addr2L1);
+       cacheLine *L1_inv = next_level->findLine(addr);//2L1);
        if(L1_inv != NULL)
        {
          //L1_inv->setFlags(INVALID);
          L1_inv->invalidate();
+         next_level->incr_back_invalidations();
 
        }
-         next_level->incr_back_invalidations();
+        // next_level->incr_back_invalidations();
     }
 }
 /*

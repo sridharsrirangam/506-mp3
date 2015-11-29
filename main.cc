@@ -51,16 +51,16 @@ int main(int argc, char *argv[])
 	//**printf("===== Simulator configuration =====\n");**//
 	//*******print out simulator configuration here*******//
 	//****************************************************//
-    printf("===== 506 Personal information ===== \n");
+    printf("===== Personal information ===== \n");
     printf("Narasimha Sridhar Srirangam \n");
-    printf("200084499 \n");
-    printf("ECE492 Students? NO \n");
+    printf("nsriran \n");
+    printf("Section ECE 001 \n");
     printf("===== 506 SMP Simulator configuration ===== \n");
     printf("L1_SIZE:  %d \n",L1_cache_size);
-    printf("L1_ASSOC: %d \n",L1_cache_assoc);
     printf("L2_SIZE:  %d \n",L2_cache_size);
-    printf("L2_ASSOC: %d \n",L2_cache_assoc);
-    printf("BLOCKSIZE: %d \n",blk_size);
+    printf("L1_ASSOC:  %d \n",L1_cache_assoc);
+    printf("L2_ASSOC:  %d \n",L2_cache_assoc);
+    printf("BLOCKSIZE:  %d \n",blk_size);
     printf("TRACE FILE: %s \n ",fname);
 
  
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
     for(int i=0;i<4;i++)
     {
       L1[i].Cache_c(L1_cache_size, L1_cache_assoc,blk_size, 1, NULL);
-      cout<<" Cache "<<i<<" pointer "<<&L1[i]<<endl;
+     // cout<<" Cache "<<i<<" pointer "<<&L1[i]<<endl;
     }
     Cache *multi;
     multi= new Cache[4];
