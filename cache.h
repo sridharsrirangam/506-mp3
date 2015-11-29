@@ -74,6 +74,7 @@ protected:
    
 public:
     ulong reads,readMisses,writes,writeMisses,writeBacks;
+    ulong L1_cache_fills;
     ulong currentCycle;  
     unsigned int BusRdX;
     unsigned int invalidates; 
@@ -85,6 +86,8 @@ public:
     ulong back_invalidations;
     ulong tag_L1;
     Cache* next_level;
+    ulong evictions;
+
     Cache(){};
    
     void  Cache_c(int,int,int,int, Cache* );

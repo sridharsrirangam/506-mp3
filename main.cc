@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 	
 	ifstream fin;
 	FILE * pFile;
-    int cpu_no,cpu_id;
+    int cpu_no;
     char op;
     char addr_str[10];
     ulong addr;
@@ -58,7 +58,9 @@ int main(int argc, char *argv[])
     printf("===== 506 SMP Simulator configuration ===== \n");
     printf("L1_SIZE:  %d \n",L1_cache_size);
     printf("L1_ASSOC: %d \n",L1_cache_assoc);
-    printf("L1_BLOCKSIZE: %d \n",blk_size);
+    printf("L2_SIZE:  %d \n",L2_cache_size);
+    printf("L2_ASSOC: %d \n",L2_cache_assoc);
+    printf("BLOCKSIZE: %d \n",blk_size);
     printf("TRACE FILE: %s \n ",fname);
 
  
@@ -107,12 +109,12 @@ int main(int argc, char *argv[])
        
        // multi[0].Access(addr,op);
      
-    cpu_id=cpu_no;
-  // int hit = multi[cpu_id].PrWrRd_MSI(addr,op);
+  //  cpu_no=cpu_no;
+  // int hit = multi[cpu_no].PrWrRd_MSI(addr,op);
    
-  // printf("cpu number %d \n ",cpu_id); 
- // int hit = multi[cpu_id].Access(addr,op);
-   // printf("called pr read for processpr %d \n",cpu_id);
+  // printf("cpu number %d \n ",cpu_no); 
+ // int hit = multi[cpu_no].Access(addr,op);
+   // printf("called pr read for processpr %d \n",cpu_no);
     
 
     cacheLine *L1_ptr = L1[cpu_no].findLine(addr);
@@ -120,32 +122,34 @@ int main(int argc, char *argv[])
     L1_hit_d = L1_hit_d;
     if((L1_ptr != NULL )&&( op == 'w'))
     {
-      cacheLine *line = multi[cpu_no].findLine(addr);
-      if(line != NULL)
-      {
-         if(line->getFlags() == VALID)
-        {
-           for( int i=0;i<4;i++)
-           {
-             if(i != cpu_id)
-              {
-                  multi[i].BusUpgr_MESI(addr, op);
-              }
-           }
-           line->setFlags(DIRTY);
-
-        }
-       }
-       int L2_hit =  multi[cpu_id].Access(addr,op);
-       L2_hit = L2_hit;
+     // cacheLine *line = multi[cpu_no].findLine(addr);
+     // if(line != NULL)
+     // {
+     //    if(line->getFlags() == VALID)
+     //    {
+     //      for( int i=0;i<4;i++)
+     //      {
+     //        if(i != cpu_no)
+     //         {
+     //             multi[i].BusUpgr_MESI(addr, op);
+     //         }
+     //      }
+     //      line->setFlags(DIRTY);
+     //   }
+     //   if(line->getFlags() == EXCLUSIVE)  line->setFlags(DIRTY);
+     // multi[cpu_no].updateLRU(line);
+       // multi[cpu_no].writes++;
+    //  }
+       //int L2_hit =  multi[cpu_no].Access(addr,op);
+       //L2_hit = L2_hit;
       }
 
-    if(L1_ptr == NULL)
+    if((L1_ptr == NULL)||(op == 'w'))
     {
-
+      if(op == 'r')L1[cpu_no].L1_cache_fills++;
       int c = 0;
       int s_e = 0;
-      cacheLine *line = multi[cpu_id].findLine(addr);
+      cacheLine *line = multi[cpu_no].findLine(addr);
       if(line != NULL)
       {
         /* if(line->getFlags()==VALID) s_e=1;
@@ -157,15 +161,15 @@ int main(int argc, char *argv[])
 
       for(int i=0; i<4;i++)
       {  
-          if(i!=cpu_id)
+          if(i!=cpu_no)
           {
               cacheLine *line = multi[i].findLine(addr);
               if( line !=NULL) c=1;
           }
       }
-      if((line==NULL)&&(c!=0)) multi[cpu_id].cache2cache++;
-      int hit  = multi[cpu_id].Access(addr,op);
-      cacheLine *linec = multi[cpu_id].findLine(addr);
+      if((line==NULL)&&(c!=0)) multi[cpu_no].cache2cache++;
+      int hit  = multi[cpu_no].Access(addr,op);
+      cacheLine *linec = multi[cpu_no].findLine(addr);
       if( (op == 'r') && (c==0) && (linec->getFlags() ==VALID)&&(line == NULL))
       {
          // printf(" set to exclusize, was %lu before ",linec->getFlags());
@@ -181,7 +185,7 @@ int main(int argc, char *argv[])
               {
                   for( int i=0;i<4;i++)
                   {
-                      if(i != cpu_id)
+                      if(i != cpu_no)
                       {
                           multi[i].BusUpgr_MESI(addr, op);
                       }
@@ -191,11 +195,11 @@ int main(int argc, char *argv[])
           }
           else if(s_e == INVALID )
           {
-              if(op=='w') multi[cpu_id].incr_BusRdX();
+              if(op=='w') multi[cpu_no].incr_BusRdX();
 
             for(int i=0; i<4;i++)
             {
-              if(i!=cpu_id)
+              if(i!=cpu_no)
                {
                    if( op =='r') multi[i].BusRd_MESI(addr, op);
                    else if (op == 'w') { multi[i].BusRdx_MESI(addr, op);}
@@ -230,9 +234,9 @@ int main(int argc, char *argv[])
 	//********************************//
     for(int i=0;i<4;i++)
     {
-        printf("============ Simulation results ( L1 Cache %d) ============ \n",i);
+        printf("============ Simulation results  L1 Cache (Processor %d) ============ \n",i);
         L1[i].printStats();	
-        printf("============ Simulation results ( L2 Cache %d) ============ \n",i);
+        printf("============ Simulation results  L2 Cache (Processor %d) ============ \n",i);
         multi[i].printStats();	
     }
 }
