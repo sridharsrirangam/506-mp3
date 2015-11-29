@@ -74,6 +74,7 @@ protected:
    
 public:
     ulong reads,readMisses,writes,writeMisses,writeBacks;
+    ulong fillLine_calls;
     ulong L1_cache_fills;
     ulong currentCycle;  
     unsigned int BusRdX;

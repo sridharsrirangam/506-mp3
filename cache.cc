@@ -25,6 +25,7 @@ void Cache::Cache_c(int s,int a,int b, int l, Cache* nextLevel )
    back_invalidations = 0;
    tag_L1 = 0; 
    evictions = 0; 
+   fillLine_calls = 0;
    L1_cache_fills = 0; 
 
    level      = l;
@@ -197,11 +198,12 @@ cacheLine * Cache::getLRU(ulong addr)
        {
          //cout<<" L1 tag "<<L1_inv->getTag()<<endl;
         // L1_inv->setFlags(INVALID);
-         L1_inv->invalidate();
+         if(L1_inv->isValid()) L1_inv->invalidate();
          next_level->incr_back_invalidations();
        }
     // cout<<"test"<<endl;
    }
+   //evictions++;
    
    return &(cache[i][victim]);
 }
@@ -232,14 +234,14 @@ cacheLine *Cache::fillLine(ulong addr)
  //   if(L1_inv != NULL)  L1_inv->setFlags(INVALID);
  //   next_level->incr_back_invalidations();
  //  }
-   if(victim->isValid()) evictions++; 	
+   if(victim->getFlags() != INVALID) evictions++; 	
    tag = calcTag(addr);   
    victim->setTag(tag);
    victim->setFlags(VALID);
    victim->setStates(SHARED_ST);
    /**note that this cache line has been already 
       upgraded to MRU in the previous function (findLineToReplace)**/
-
+   fillLine_calls++;
    return victim;
 }
 
@@ -261,6 +263,7 @@ void Cache::printStats()
     printf("13. number of back invalidations: %lu \n",back_invalidations);
     printf("14. number of Evictions: %lu \n",evictions);
     printf("15. number of L1 cache fills: %lu \n",L1_cache_fills);
+    printf("16. number of fillLine calls: %lu \n",fillLine_calls);
 }
 
 
@@ -269,6 +272,7 @@ void Cache::BusRdx_MESI( ulong addr, uchar op)
     cacheLine *line = findLine(addr);
    if(line!=NULL)
    {
+       ulong addr2L1 = calcAddr4Tag(line->getTag());
        if(line->isValid())
        {
            if(line->getFlags() == DIRTY)
@@ -279,12 +283,11 @@ void Cache::BusRdx_MESI( ulong addr, uchar op)
           line->invalidate();
           invalidates++;
          }
-       ulong addr2L1 = calcAddr4Tag(line->getTag());
        cacheLine *L1_inv = next_level->findLine(addr2L1);
        if(L1_inv != NULL)
        {
          //L1_inv->setFlags(INVALID);
-         L1_inv->invalidate();
+        if(L1_inv->isValid())  L1_inv->invalidate();
 
        }
       next_level->incr_back_invalidations();
@@ -328,12 +331,12 @@ void Cache::BusUpgr_MESI (ulong addr, uchar op)
     cacheLine *line = findLine(addr);
     if(line != NULL)
     {
+        ulong addr2L1 = calcAddr4Tag(line->getTag());
         if(line->isValid())
         {
             line->invalidate();
             invalidates++;
         }
-       ulong addr2L1 = calcAddr4Tag(line->getTag());
        cacheLine *L1_inv = next_level->findLine(addr2L1);
        if(L1_inv != NULL)
        {
